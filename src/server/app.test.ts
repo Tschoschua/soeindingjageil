@@ -22,6 +22,96 @@ describe('API', () => {
     expect(body).toHaveLength(1)
   })
 
-  // TODO Aufgabe 5: Schreibe Tests für POST (201 + 400 bei leerem Titel), PATCH und DELETE.
+  it('POST /api/items legt einen Eintrag an', async () => {
+    const res = await app().request('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Neuer Eintrag' }),
+    })
+
+    expect(res.status).toBe(201)
+    await expect(res.json()).resolves.toMatchObject({
+      id: 2,
+      title: 'Neuer Eintrag',
+      category: 'Allgemein',
+      note: '',
+      done: false,
+    })
+  })
+
+  it('POST /api/items weist ungültige Eingaben mit 400 zurück', async () => {
+    const res = await app().request('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '' }),
+    })
+
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toMatchObject({
+      error: 'Ungültige Eingabe',
+      details: expect.any(Array),
+    })
+  })
+
+  it('POST /api/items weist fehlerhaftes JSON mit 400 zurück', async () => {
+    const res = await app().request('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{',
+    })
+
+    expect(res.status).toBe(400)
+  })
+
+  it('PATCH /api/items/:id aktualisiert einen Eintrag', async () => {
+    const res = await app().request('/api/items/1', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Aktualisiert' }),
+    })
+
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toMatchObject({ id: 1, title: 'Aktualisiert' })
+  })
+
+  it('PATCH /api/items/:id weist ungültige IDs und Eingaben zurück', async () => {
+    const invalidId = await app().request('/api/items/abc', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Aktualisiert' }),
+    })
+    const invalidInput = await app().request('/api/items/1', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '' }),
+    })
+
+    expect(invalidId.status).toBe(400)
+    expect(invalidInput.status).toBe(400)
+  })
+
+  it('PATCH /api/items/:id meldet fehlende Einträge mit 404', async () => {
+    const res = await app().request('/api/items/2', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Aktualisiert' }),
+    })
+
+    expect(res.status).toBe(404)
+  })
+
+  it('DELETE /api/items/:id löscht einen Eintrag', async () => {
+    const res = await app().request('/api/items/1', { method: 'DELETE' })
+
+    expect(res.status).toBe(204)
+    expect(await res.text()).toBe('')
+  })
+
+  it('DELETE /api/items/:id meldet fehlende Einträge mit 404', async () => {
+    const res = await app().request('/api/items/2', { method: 'DELETE' })
+
+    expect(res.status).toBe(404)
+  })
+
   // Vorlage: snippets/05-api.test.ts
 })
